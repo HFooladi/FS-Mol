@@ -44,13 +44,14 @@ AVAILABLE_FEATURIZERS = [
     "gin_supervised_contextpred",
     "gin_supervised_edgepred",
     "gin_supervised_masking",
-    "MolT5"
-    ] 
+    "MolT5",
+]
 
 """
 - desc3D not working
 - usrcat not working 
 """
+
 
 def parse_args():
     parser = ArgumentParser()
@@ -84,9 +85,9 @@ def main():
         train_tasks.append(task)
 
     if args.featurizer == "all":
-        FEATURIZERS_LIST=AVAILABLE_FEATURIZERS
+        FEATURIZERS_LIST = AVAILABLE_FEATURIZERS
     else:
-        FEATURIZERS_LIST=[args.featurizer]
+        FEATURIZERS_LIST = [args.featurizer]
 
     for featurizer in tqdm(FEATURIZERS_LIST):
         if featurizer in ["ecfp", "fcfp", "mordred"]:
@@ -102,7 +103,12 @@ def main():
         elif featurizer in ["pcqm4mv2_graphormer_base"]:
             transformer = GraphormerTransformer(kind=featurizer, dtype=float, n_jobs=args.n_jobs)
 
-        elif featurizer in ["ChemBERTa-77M-MLM", "ChemBERTa-77M-MTR", "Roberta-Zinc480M-102M", "MolT5"]:
+        elif featurizer in [
+            "ChemBERTa-77M-MLM",
+            "ChemBERTa-77M-MTR",
+            "Roberta-Zinc480M-102M",
+            "MolT5",
+        ]:
             transformer = PretrainedHFTransformer(
                 kind=featurizer, notation="smiles", dtype=float, n_jobs=args.n_jobs
             )
@@ -113,31 +119,39 @@ def main():
             "gin_supervised_edgepred",
             "gin_supervised_masking",
         ]:
-            transformer = PretrainedDGLTransformer(
-                kind=featurizer, dtype=float, n_jobs=args.n_jobs
-            )
+            transformer = PretrainedDGLTransformer(kind=featurizer, dtype=float, n_jobs=args.n_jobs)
 
         print("computing features for test tasks ...")
-        test_features = [compute_features_smiles_labels(task, transformer) for task in tqdm(test_tasks)]
+        test_features = [
+            compute_features_smiles_labels(task, transformer) for task in tqdm(test_tasks)
+        ]
 
         print("computing features for train tasks ...")
-        train_features = [compute_features_smiles_labels(task, transformer) for task in tqdm(train_tasks)]
+        train_features = [
+            compute_features_smiles_labels(task, transformer) for task in tqdm(train_tasks)
+        ]
 
         features_test = {
-            test_tasks[i].name: {featurizer: feature[0], 'labels': feature[1], 'smiles': feature[2]} for i, feature in enumerate(test_features)
+            test_tasks[i].name: {featurizer: feature[0], "labels": feature[1], "smiles": feature[2]}
+            for i, feature in enumerate(test_features)
         }
 
         features_train = {
-            train_tasks[i].name: {featurizer: feature[0], 'labels': feature[1], 'smiles': feature[2]} for i, feature in enumerate(train_features)
+            train_tasks[i].name: {
+                featurizer: feature[0],
+                "labels": feature[1],
+                "smiles": feature[2],
+            }
+            for i, feature in enumerate(train_features)
         }
 
         path_to_save_embedding_test = os.path.join(
-            FS_MOL_DATASET_PATH, 'embeddings', f"{featurizer}_test.pkl"
+            FS_MOL_DATASET_PATH, "embeddings", f"{featurizer}_test.pkl"
         )
 
         path_to_save_embedding_train = os.path.join(
-            FS_MOL_DATASET_PATH, 'embeddings', f"{featurizer}_train.pkl"
-        )     
+            FS_MOL_DATASET_PATH, "embeddings", f"{featurizer}_train.pkl"
+        )
 
         with open(path_to_save_embedding_test, "wb") as f:
             pickle.dump(features_test, f)

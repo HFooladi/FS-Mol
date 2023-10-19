@@ -360,4 +360,6 @@ outputs/
 
 # add tmp folder to ignore
 tmp/
-.git/
+
+# add assets folder to ignore
+assets/
