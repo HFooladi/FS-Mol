@@ -1,3 +1,6 @@
+""" This script is used to compute the embedding for molecules in the test tasks and train tasks.
+    The embedding is computed using the specified available featurizers.
+"""
 import os
 import sys
 import pickle
@@ -38,20 +41,25 @@ AVAILABLE_FEATURIZERS = [
     "gin_supervised_contextpred",
     "gin_supervised_edgepred",
     "gin_supervised_masking",
-    ] 
+    "MolT5",
+]
+
 
 def parse_args():
     parser = ArgumentParser()
-    parser.add_argument("--data_fold", type=str, choices=["train", "valid", "test"], default="test", help="")
+    parser.add_argument(
+        "--data_fold", type=str, choices=["train", "valid", "test"], default="test", help=""
+    )
     parser.add_argument("--n_jobs", type=int, default=32, help="")
     args = parser.parse_args()
     return args
 
 
-
 def main():
     args = parse_args()
-    dataset = FSMolDataset.from_directory(FS_MOL_DATASET_PATH, task_list_file=os.path.join(FS_MOL_DATASET_PATH, "fsmol-0.1.json"))
+    dataset = FSMolDataset.from_directory(
+        FS_MOL_DATASET_PATH, task_list_file=os.path.join(FS_MOL_DATASET_PATH, "fsmol-0.1.json")
+    )
 
     # This will create a list of all tasks in the test tasks. Each task contains `MolculeDatapoint` objects
     tasks = []
@@ -80,10 +88,12 @@ def main():
                 molecule_features[task.name][featurizer] = compute_features(task, transformer)
 
             elif featurizer in ["pcqm4mv2_graphormer_base"]:
-                transformer = GraphormerTransformer(kind=featurizer, dtype=float, n_jobs=args.n_jobs)
+                transformer = GraphormerTransformer(
+                    kind=featurizer, dtype=float, n_jobs=args.n_jobs
+                )
                 molecule_features[task.name][featurizer] = compute_features(task, transformer)
 
-            elif featurizer in ["ChemBERTa-77M-MLM", "ChemBERTa-77M-MTR", "Roberta-Zinc480M-102M"]:
+            elif featurizer in ["ChemBERTa-77M-MLM", "ChemBERTa-77M-MTR", "Roberta-Zinc480M-102M", "MolT5"]:
                 transformer = PretrainedHFTransformer(
                     kind=featurizer, notation="smiles", dtype=float, n_jobs=args.n_jobs
                 )
@@ -99,15 +109,15 @@ def main():
                     kind=featurizer, dtype=float, n_jobs=args.n_jobs
                 )
                 molecule_features[task.name][featurizer] = compute_features(task, transformer)
-            
-        
-        molecule_features[task.name]['labels'] = torch.Tensor(np.array([item.bool_label for item in task.samples]))
-        molecule_features[task.name]['smiles'] = np.array([item.smiles for item in task.samples])
-    
+
+        molecule_features[task.name]["labels"] = torch.Tensor(
+            np.array([item.bool_label for item in task.samples])
+        )
+        molecule_features[task.name]["smiles"] = np.array([item.smiles for item in task.samples])
+
     output_path = os.path.join(FS_MOL_DATASET_PATH, f"{args.data_fold}_features.pkl")
     with open(output_path, "wb") as f:
         pickle.dump(molecule_features, f)
-
 
 
 if __name__ == "__main__":

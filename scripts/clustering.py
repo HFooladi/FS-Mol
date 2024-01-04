@@ -32,7 +32,7 @@ def kmeans_cluster(X, num_clusters):
     """
     Parameters
     ----------
-    X: array-like, shape (n_samples, n_features) 
+    X: array-like, shape (n_samples, n_features)
     num_clusters: int
         number of clusters
     outfile_name: str
@@ -41,21 +41,20 @@ def kmeans_cluster(X, num_clusters):
     kmeans = KMeans(n_clusters=num_clusters, random_state=0, n_init="auto").fit(X)
     return kmeans.cluster_centers_
 
+
 def main():
     args = parse_args()
-    
-    output_path = os.path.join(FS_MOL_DATASET_PATH, 'embeddings', f"{args.featurizer}_test.pkl")
+
+    output_path = os.path.join(FS_MOL_DATASET_PATH, "embeddings", f"{args.featurizer}_test.pkl")
     with open(output_path, "rb") as f:
         data = pickle.load(f)
-    
+
     for key, value in tqdm(data.items()):
         print(key, value.shape)
-        X = value[f'{args.featurizer}']
+        X = value[f"{args.featurizer}"]
         print(X.shape)
         kmeans_cluster(X, args.num_clusters)
 
 
-
 if __name__ == "__main__":
     main()
-

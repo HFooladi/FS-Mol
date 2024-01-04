@@ -1,4 +1,6 @@
 ## This script will return distance matrix bewteen training and test set tasks
+## The distance matrix is computed based on the embedding of the training and test set tasks
+## Also, test tasks hardness is computed based on the distance matrix.
 import os
 import sys
 import pickle
@@ -93,7 +95,6 @@ def main():
         "distance_matrix": distance_matrix,
     }
 
-
     # compute hardness for each test task based on distance matrix
 
     task_hardness = compute_task_hardness_from_distance_matrix(
@@ -118,7 +119,6 @@ def main():
         ),
         index=False,
     )
-
 
 
 if __name__ == "__main__":
