@@ -588,3 +588,44 @@ class SimilarityTaskSampler(TaskSampler):
             valid_samples=valid_samples,
             test_samples=test_samples,
         )
+
+
+class SScaffoldTaskSampler(TaskSampler):
+    def __init__(
+        self,
+        train_size_or_ratio: Union[int, float] = 128,
+        valid_size_or_ratio: Union[int, float] = 0.0,
+        test_size_or_ratio: Optional[Union[int, float, Tuple[int, int]]] = 256,
+        allow_smaller_test: bool = True,
+    ):
+        """Create a scaffold sampler object. When applied to a dataset, it will draw scaffold
+        samples of the specified sizes from the full set of datapoints for each fold.
+
+        Sampling can fail for two reasons:
+         * A fixed size is requested for any of the folds that cannot be satisfied.
+         * The resulting folds do not contain representative of both false and true labels.
+
+        Args:
+            train_size_or_ratio: If a float, this is interpreted as a fraction of the overall
+                dataset size to be used as training data.
+                If an integer, it is interpreted as the total number of samples.
+            valid_size_or_ratio: If a float, this is interpreted as a fraction of the TRAINING
+                fold (specified above) to be used for validation.
+                If an integer, it is interpreted as the total number of samples.
+                In both cases, these examples are taken from the training data, not from the overall
+                dataset.
+            test_size_or_ratio: If a float, this is interpreted as a fraction of the overall
+                dataset size to be used as test data.
+                If an integer, it is interpreted as the total number of samples.
+                If a tuple of integers, it is interpreted as (min_num, target_num) of
+                samples; we then provide at least min_num samples, at most target_num samples,
+                and only throw an exception if we there are not even min_num samples available.
+        """
+        self._train_size_or_ratio = train_size_or_ratio
+        self._valid_size_or_ratio = valid_size_or_ratio
+        self._test_size_or_ratio = test_size_or_ratio
+        self._allow_smaller_test = allow_smaller_test
+
+    def sample(self, task: FSMolTask, seed: int = 0) -> FSMolTaskSample:
+        # Just defer to the sklearn splitter:
+        pass
