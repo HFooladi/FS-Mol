@@ -3,6 +3,9 @@ from abc import ABC, abstractmethod
 from typing import Union, Tuple, Optional
 
 import numpy as np
+import datamol as dm
+from splito import ScaffoldSplit
+import rdkit.Chem as Chem
 from sklearn.model_selection import StratifiedShuffleSplit
 
 from fs_mol.data.fsmol_task import FSMolTask, FSMolTaskSample
@@ -10,6 +13,24 @@ from fs_mol.utils.distance_utils import compute_similarities, similar_dissimilar
 
 
 logger = logging.getLogger(__name__)
+
+
+def get_scaffold(mol:Union[str, Chem.rdchem.Mol], make_generic: bool = False) -> Optional[str]:
+    """
+    Computes the Bemis-Murcko scaffold of a compound.
+    If make_generic is True, the scaffold is made generic by replacing all side chains with R groups.
+
+    Args:
+        mol: Union[str, Chem.rdchem.Mol]: The molecule for which to compute the scaffold.
+        make_generic: bool: Whether to make the scaffold generic.
+    
+    Returns:
+        str: The scaffold as a SMILES string.
+    """
+    mol = dm.to_mol(mol)
+    scaffold = dm.to_scaffold_murcko(mol, make_generic=make_generic)
+    scaffold = dm.to_smiles(scaffold)
+    return scaffold
 
 
 class SamplingException(Exception):
@@ -449,7 +470,7 @@ class SimilarityTaskSampler(TaskSampler):
         test_size_or_ratio: Optional[Union[int, float, Tuple[int, int]]] = 256,
         allow_smaller_test: bool = True,
     ):
-        """Create a stratified sampler object. When applied to a dataset, it will draw stratified
+        """Create a similarity sampler object. When applied to a dataset, it will draw stratified
         samples of the specified sizes from the full set of datapoints for each fold.
 
         Sampling can fail for two reasons:
@@ -590,7 +611,7 @@ class SimilarityTaskSampler(TaskSampler):
         )
 
 
-class SScaffoldTaskSampler(TaskSampler):
+class ScaffoldTaskSampler(TaskSampler):
     def __init__(
         self,
         train_size_or_ratio: Union[int, float] = 128,
@@ -628,4 +649,99 @@ class SScaffoldTaskSampler(TaskSampler):
 
     def sample(self, task: FSMolTask, seed: int = 0) -> FSMolTaskSample:
         # Just defer to the sklearn splitter:
-        pass
+        # Check the partition function and make sure that it is working as expected
+        samples = task.samples
+        num_samples = len(samples)
+        if isinstance(self._train_size_or_ratio, int):
+            possible_test_size = num_samples - self._train_size_or_ratio
+        else:
+            possible_test_size = num_samples - int(num_samples * self._train_size_or_ratio)
+
+        if self._test_size_or_ratio is None:
+            num_test = possible_test_size
+        else:
+            if isinstance(self._test_size_or_ratio, int):
+                num_test = self._test_size_or_ratio
+            elif isinstance(self._test_size_or_ratio, tuple):
+                min_num, target_num = self._test_size_or_ratio
+                num_test = max(min_num, min(target_num, possible_test_size))
+            else:
+                num_test = int(self._test_size_or_ratio * num_samples)
+            if self._allow_smaller_test:
+                num_test = min(num_test, possible_test_size)
+
+        if num_test < 2:
+            raise DatasetTooSmallException(
+                task.name,
+                num_samples=num_samples,
+                num_train=self._train_size_or_ratio,
+                num_valid=0,
+                num_test=num_test,
+            )
+        task_smiles =  [sample.smiles for sample in samples]
+        train_test_splitter_obj = ScaffoldSplit(
+            task_smiles, n_jobs=-1, train_size=self._train_size_or_ratio, test_size=num_test, random_state=seed
+        )
+        train_valid_idxs, test_idxs = next(train_test_splitter_obj.split(X=np.array(task_smiles)))
+
+        train_valid_samples = [samples[i] for i in train_valid_idxs]
+        test_samples = [samples[i] for i in test_idxs]
+
+        if len(test_samples) < 2:
+            raise FoldTooSmallException(
+                task_name=task.name,
+                num_samples=num_samples,
+                fold_name="test",
+                num_train=len(train_valid_samples),
+            )
+
+        if self._valid_size_or_ratio > 0:
+            train_valid_smiles = [sample.smiles for sample in train_valid_samples]
+            train_valid_splitter_obj = ScaffoldSplit(
+               train_valid_smiles, n_jobs=-1, test_size=self._valid_size_or_ratio, random_state=seed
+            )
+            train_idxs, valid_idxs = next(
+                train_valid_splitter_obj.split(X=np.array(train_valid_smiles))
+            )
+            train_samples = [train_valid_samples[i] for i in train_idxs]
+            valid_samples = [train_valid_samples[i] for i in valid_idxs]
+
+            num_pos_valid_samples = sum(s.bool_label for s in valid_samples)
+            if not (0 < num_pos_valid_samples < len(valid_samples)):
+                raise FoldTooSmallException(
+                    task_name=task.name,
+                    num_samples=num_samples,
+                    fold_name="valid",
+                    num_train=len(train_samples),
+                    num_test=len(test_samples),
+                )
+        else:
+            train_samples = train_valid_samples
+            valid_samples = []
+
+        num_pos_train_samples = sum(s.bool_label for s in train_samples)
+        if not (0 < num_pos_train_samples < len(train_samples)):
+            raise FoldTooSmallException(
+                task_name=task.name,
+                num_samples=num_samples,
+                fold_name="train",
+                num_train=len(train_samples),
+                num_test=len(test_samples),
+            )
+
+        num_pos_test_samples = sum(s.bool_label for s in test_samples)
+        if not (0 < num_pos_test_samples < len(test_samples)):
+            raise FoldTooSmallException(
+                task_name=task.name,
+                num_samples=num_samples,
+                fold_name="test",
+                num_train=len(train_samples),
+                num_test=len(test_samples),
+            )
+
+        return FSMolTaskSample(
+            name=task.name,
+            train_samples=train_samples,
+            valid_samples=valid_samples,
+            test_samples=test_samples,
+        )
