@@ -18,6 +18,8 @@ from fs_mol.data.fsmol_task_sampler import (
     DatasetTooSmallException,
     FoldTooSmallException,
     StratifiedTaskSampler,
+    RandomTaskSampler,
+    ScaffoldTaskSampler,
     SimilarityTaskSampler,
 )
 from fs_mol.utils.cli_utils import set_seed
@@ -204,7 +206,7 @@ def eval_model(
     for task in dataset.get_task_reading_iterable(fold, **task_reading_kwargs):
         test_results: List[FSMolTaskSampleEvalResults] = []
         for train_size in train_set_sample_sizes:
-            task_sampler = StratifiedTaskSampler(
+            task_sampler = ScaffoldTaskSampler(
                 train_size_or_ratio=train_size,
                 valid_size_or_ratio=valid_size_or_ratio,
                 test_size_or_ratio=test_size_or_ratio,
