@@ -206,7 +206,7 @@ def eval_model(
     for task in dataset.get_task_reading_iterable(fold, **task_reading_kwargs):
         test_results: List[FSMolTaskSampleEvalResults] = []
         for train_size in train_set_sample_sizes:
-            task_sampler = ScaffoldTaskSampler(
+            task_sampler = StratifiedTaskSampler(
                 train_size_or_ratio=train_size,
                 valid_size_or_ratio=valid_size_or_ratio,
                 test_size_or_ratio=test_size_or_ratio,
