@@ -669,6 +669,8 @@ class ScaffoldTaskSampler(TaskSampler):
                 num_test = int(self._test_size_or_ratio * num_samples)
             if self._allow_smaller_test:
                 num_test = min(num_test, possible_test_size)
+        print(num_test)
+
 
         if num_test < 2:
             raise DatasetTooSmallException(
