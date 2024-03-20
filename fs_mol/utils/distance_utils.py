@@ -15,6 +15,13 @@ from tqdm import tqdm
 
 
 def normalize(x):
+    """Normalize a vector.
+
+    Args:
+        x: vector to normalize
+    Returns:
+        x: normalized vector
+    """
     return (x - x.min()) / (x.max() - x.min())
 
 
@@ -103,6 +110,11 @@ def compute_task_hardness_from_distance_matrix(distance_matrix: torch.Tensor, pr
         distance_matrix: [N_train * N_test] tensor with the pairwise distances between train and test samples.
         proportion: proportion (percent) of training tasks that should be condidered for calculating hardness
         aggr: aggregation method to use. Can be 'mean', 'median' or 'both'
+    
+    Returns:
+        results: list of tensors containing the hardness of the tasks
+        if aggregation method is 'mean' or 'median', the list will contain only one tensor
+        if aggregation method is 'both', the list will contain two tensors (mean and median)
     """
     assert distance_matrix.shape[0] > distance_matrix.shape[1], "training set tasks should be larger than test set tasks"
     # Sort the distance matrix along the test dimension
@@ -308,7 +320,7 @@ def otdd_hardness(path_to_otdd, path_to_intra_hardness, k=10, train_tasks_weight
 def prototype_hardness(path_to_prototypes_distance, path_to_intra_hardness, k=10, train_tasks_weighted=False, weighting_method='rf') -> pd.DataFrame:
     """This function computes the hardness of the test tasks from distance matirix
     computed based on prototype distance. The hardeness can be weighted based on the internal hardness of the
-    training tasks
+    training tasks.
 
     Args:
         path_to_prototypes_distance: Path to the prototype distance file (pickle file)

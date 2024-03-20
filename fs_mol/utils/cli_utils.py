@@ -59,7 +59,7 @@ def set_up_train_run(
     logger.info(f"Setting random seed {args.seed}.")
     set_seed(args.seed, torch=torch, tf=tf)
 
-    run_name = f"FSMol_{model_name}_{args.task_list_file}_{time.strftime('%Y-%m-%d_%H-%M-%S')}"
+    run_name = f"FSMol_{model_name}_{args.task_list_file.split('/')[-1]}_{time.strftime('%Y-%m-%d_%H-%M-%S')}"
     out_dir = os.path.join(args.save_dir, run_name)
     os.makedirs(out_dir, exist_ok=True)
     set_up_logging(os.path.join(out_dir, f"train.log"))

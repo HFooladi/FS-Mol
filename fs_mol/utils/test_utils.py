@@ -110,7 +110,7 @@ def set_up_test_run(
     model_name: str, args: argparse.Namespace, torch: bool = False, tf: bool = False
 ) -> Tuple[str, FSMolDataset]:
     set_seed(args.seed, torch=torch, tf=tf)
-    run_name = f"FSMol_Eval_{model_name}_{time.strftime('%Y-%m-%d_%H-%M-%S')}"
+    run_name = f"FSMol_Eval_{model_name}_{args.task_list_file.split('/')[-1].split('.')[0]}_{time.strftime('%Y-%m-%d_%H-%M-%S')}"
     out_dir = os.path.join(args.save_dir, run_name)
     os.makedirs(out_dir, exist_ok=True)
     set_up_logging(os.path.join(out_dir, f"{run_name}.log"))
